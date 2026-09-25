@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1
+
+#############################
+# Stage 1 — build: resolve e instala dependências com uv
+#############################
+FROM python:3.11-slim AS builder
+
+# ffmpeg é necessário pelo Whisper para decodificar áudio.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /build
+
+# Copia apenas os manifests primeiro para aproveitar o cache de camadas.
+COPY pyproject.toml README.md ./
+COPY src ./src
+
+# Cria o ambiente virtual e instala o projeto (sem dependências de dev).
+#
+# torch instalado a partir do índice CUDA do PyTorch. Ajuste "cu121"
+# se a versão do driver NVIDIA do host de destino exigir outro build
+# (ex. cu124). Para hosts só-CPU, prefira Dockerfile.cpu (imagem bem
+# menor) — esta variante também funciona sem GPU, mas com wheel maior.
+RUN uv venv /opt/venv \
+    && . /opt/venv/bin/activate \
+    && uv pip install --no-cache torch --extra-index-url https://download.pytorch.org/whl/cu121 \
+    && uv pip install --no-cache .
+
+
+#############################
+# Stage 2 — runtime: imagem final, enxuta
+#############################
+FROM python:3.11-slim AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
+
+# Usuário não-root.
+RUN useradd --create-home --shell /bin/bash app
+
+# --- Caminhos de dados definidos aqui, de forma centralizada ---
+# core/config.py lê exatamente estas variáveis; mudar o armazenamento
+# do projeto (ex.: apontar para um volume diferente) é uma questão de
+# alterar estas linhas, sem tocar em código.
+ENV TTS_DATA_DIR=/data \
+    TTS_AUDIO_SUBDIR=audio \
+    TTS_REGISTRY_FILENAME=registry.csv \
+    TTS_DEFAULT_LANGUAGE=pt-BR \
+    TTS_WHISPER_MODEL=base \
+    PATH="/opt/venv/bin:$PATH"
+
+RUN mkdir -p /data/audio && chown -R app:app /data
+
+# O pacote já vem instalado (com templates/static inclusos) a partir
+# do estágio de build; nenhum código-fonte precisa ser copiado aqui.
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+USER app
+
+VOLUME ["/data"]
+EXPOSE 5000
+
+# Por padrão sobe o servidor web. A CLI continua disponível via:
+#   docker run --rm -v $(pwd)/data:/data tts-project tts synthesize ...
+CMD ["python", "-m", "flask", "--app", "tts_project.web.app:app", "run", "--host=0.0.0.0", "--port=5000"]

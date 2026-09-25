@@ -1,0 +1,43 @@
+name: Testes (dev -> master)
+
+# Valida qualquer Pull Request que mescla `dev` em `master`/`main`:
+# checagem de tipos (mypy) e testes com cobertura (pytest).
+on:
+  pull_request:
+    branches: [master, main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Definir versão do Python
+        run: uv python install 3.11
+
+      - name: Instalar dependências (incluindo dev)
+        run: uv sync --extra dev
+
+      - name: Checagem de tipos (mypy)
+        run: uv run mypy src
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Testes com cobertura (pytest)
+        run: uv run pytest --cov-report=xml
+
+      - name: Publicar relatório de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml

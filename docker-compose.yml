@@ -1,0 +1,15 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    image: tts-project:cpu
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    environment:
+      TTS_DEFAULT_LANGUAGE: pt-BR
+      TTS_WHISPER_MODEL: base
+    # Variante CPU (Dockerfile.cpu). Para GPU, suba com o override:
+    #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up

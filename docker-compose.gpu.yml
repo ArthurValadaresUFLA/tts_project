@@ -1,0 +1,19 @@
+# Override para a variante GPU: usa Dockerfile.gpu e reserva a GPU
+# NVIDIA no host. Requer NVIDIA Container Toolkit instalado e o
+# runtime "nvidia" configurado no Docker. Uso:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
+#
+# Sem esse arquivo, o serviço "web" sobe com Dockerfile.cpu (padrão).
+services:
+  web:
+    build:
+      dockerfile: Dockerfile.gpu
+    image: tts-project:gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

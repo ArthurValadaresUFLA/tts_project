@@ -1,0 +1,19 @@
+/* Pequenos ajustes sobre o Pico.css (classless). */
+
+main.container {
+  max-width: 720px;
+}
+
+#audio-player {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+#error-text {
+  color: var(--pico-del-color);
+}
+
+#progress-section,
+#result-section {
+  margin-top: 1.5rem;
+}
