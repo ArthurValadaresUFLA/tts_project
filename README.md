@@ -207,9 +207,9 @@ ENV TTS_DATA_DIR=/data \
 
 ```bash
 # Build
-docker build -t tts-project Dockerfile.cpu # Build da imagem para CPU
+docker build -f Dockerfile.cpu -t tts-project . # Build da imagem para CPU
 
-docker build -t tts-project Dockerfile.gpu # Build da imagem para GPU
+docker build -f Dockerfile.gpu -t tts-project . # Build da imagem para GPU
 
 # Rodar a aplicação web, persistindo os dados em ./data
 docker run --rm -p 5000:5000 -v "$(pwd)/data:/data" tts-project
