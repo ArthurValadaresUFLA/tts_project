@@ -37,12 +37,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/tts_project"]
 
-# Garante que os templates e arquivos estáticos do Flask (que não são
-# .py) sejam empacotados junto com o pacote instalado.
-[tool.hatch.build.targets.wheel.force-include]
-"src/tts_project/web/templates" = "tts_project/web/templates"
-"src/tts_project/web/static" = "tts_project/web/static"
-
 [tool.mypy]
 python_version = "3.11"
 mypy_path = "src"
